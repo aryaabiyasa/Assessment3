@@ -33,4 +33,4 @@ object MobilApi {
     }
 }
 
-enum class ApiStatus { LOADING, SUCCESS }
+enum class ApiStatus { LOADING, SUCCESS, FAILED }
