@@ -11,4 +11,7 @@
     <string name="nama_latin">Nama latin</string>
     <string name="batal">Batal</string>
     <string name="simpan">Simpan</string>
+    <string name="konfirmasi_hapus">Konfirmasi Hapus</string>
+    <string name="pesan_hapus">Anda yakin ingin menghapus ini?</string>
+    <string name="hapus">hapus</string>
 </resources>

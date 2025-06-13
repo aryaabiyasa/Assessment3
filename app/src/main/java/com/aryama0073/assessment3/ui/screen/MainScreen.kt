@@ -12,18 +12,23 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -51,6 +57,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -95,6 +102,8 @@ fun MainScreen() {
 
     var showDialog by remember { mutableStateOf(false) }
     var showMobilDialog by remember { mutableStateOf(false) }
+    var showHapusDialog by remember { mutableStateOf(false) }
+    var mobilToDelete by remember { mutableStateOf<Mobil?>(null) }
 
     var bitmap: Bitmap? by remember { mutableStateOf(null) }
     val launcher = rememberLauncherForActivityResult(CropImageContract()) {
@@ -148,7 +157,16 @@ fun MainScreen() {
             }
         }
     ) { innerPadding ->
-        ScreenContent(viewModel, user.email, Modifier.padding(innerPadding))
+        ScreenContent(
+            viewModel = viewModel,
+            userId = user.email,
+            currentUserId = user.email,
+            onDeleteClick = { hewan ->
+                mobilToDelete = hewan
+                showHapusDialog = true
+            },
+            modifier = Modifier.padding(innerPadding)
+        )
 
         if (showDialog) {
             ProfilDialog(
@@ -168,6 +186,20 @@ fun MainScreen() {
             }
         }
 
+        if (showHapusDialog) {
+            HapusDialog(
+                onDismissRequest = {
+                    showHapusDialog = false
+                    mobilToDelete = null
+                },
+                onConfirmation = {
+                    mobilToDelete?.let { hewan ->
+                        viewModel.deleteData(user.email, hewan.id)
+                    }
+                }
+            )
+        }
+
         if (errorMessage != null) {
             Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
             viewModel.clearMessage()
@@ -176,7 +208,13 @@ fun MainScreen() {
 }
 
 @Composable
-fun ScreenContent(viewModel: MainViewModel, userId: String, modifier: Modifier = Modifier) {
+fun ScreenContent(
+    viewModel: MainViewModel,
+    userId: String,
+    currentUserId: String,
+    onDeleteClick: (Mobil) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val data by viewModel.data
     val status by viewModel.status.collectAsState()
 
@@ -200,7 +238,13 @@ fun ScreenContent(viewModel: MainViewModel, userId: String, modifier: Modifier =
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(bottom = 80.dp)
             ) {
-                items(data) { ListItem(mobil = it) }
+                items(data) { mobil ->
+                    ListItem(
+                        mobil = mobil,
+                        onDeleteClick = { onDeleteClick(mobil) }
+                    )
+                    Log.d("DEBUG_DELETE", "Hewan: ${mobil.nama}, HewanUserId: '${mobil.userId}', CurrentUserId: '$currentUserId', IsOwner: ${mobil.userId == currentUserId && currentUserId.isNotEmpty()}")
+                }
             }
         }
 
@@ -224,10 +268,16 @@ fun ScreenContent(viewModel: MainViewModel, userId: String, modifier: Modifier =
 }
 
 @Composable
-fun ListItem(mobil: Mobil) {
+fun ListItem(
+             mobil: Mobil,
+             onDeleteClick: () -> Unit
+) {
     Box(
-        modifier = Modifier.padding(4.dp).border(1.dp, Color.Gray),
-        contentAlignment = Alignment.BottomCenter
+        modifier = Modifier
+            .padding(4.dp)
+            .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.medium)
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
@@ -238,23 +288,52 @@ fun ListItem(mobil: Mobil) {
             contentScale = ContentScale.Crop,
             placeholder = painterResource(id = R.drawable.loading_img),
             error = painterResource(id = R.drawable.broken_img),
-            modifier = Modifier.fillMaxWidth().padding(4.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
         )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(8.dp)
+                .size(35.dp)
+                .background(
+                    Color.Black.copy(alpha = 0.3f),
+                    shape = CircleShape
+                )
+                .clickable { onDeleteClick() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Hapus",
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+        }
         Column(
-            modifier = Modifier.fillMaxWidth().padding(4.dp)
-                .background(Color(red = 0f, green = 0f, blue = 0f, alpha = 0.5f))
-                .padding(4.dp)
-        ){
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(
+                    MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f)
+                )
+                .padding(8.dp)
+        ) {
             Text(
                 text = mobil.nama,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = mobil.namaLatin,
                 fontStyle = FontStyle.Italic,
                 fontSize = 14.sp,
-                color = Color.White
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
