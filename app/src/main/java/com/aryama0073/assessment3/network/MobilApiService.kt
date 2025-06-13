@@ -27,7 +27,9 @@ private val retrofit = Retrofit.Builder()
 
 interface MobilApiService {
     @GET("hewan.php")
-    suspend fun getMobil(): List<Mobil>
+    suspend fun getMobil(
+        @Header("Authorization") userId: String
+    ): List<Mobil>
 
     @Multipart
     @POST("hewan.php")
