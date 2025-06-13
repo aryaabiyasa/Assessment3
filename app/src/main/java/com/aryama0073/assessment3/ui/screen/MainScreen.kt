@@ -255,7 +255,7 @@ fun ListItem(
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(MahasiswaApi.getMahasiswaImageUrl(mahasiswa.imageUrl))
+                .data(MahasiswaApi.getMahasiswaImageUrl(mahasiswa.image))
                 .crossfade(true)
                 .build(),
             contentDescription = stringResource(R.string.gambar, mahasiswa.nama),

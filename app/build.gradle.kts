@@ -71,6 +71,8 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.android.image.cropper)
 
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -41,18 +41,15 @@ class MainViewModel : ViewModel() {
     fun saveData(email: String, nama: String, kelas: String, suku: String, bitmap: Bitmap) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = MahasiswaApi.service.postMahasiswa(
+                MahasiswaApi.service.postMahasiswa(
                     email = email,
                     nama.toRequestBody("text/plain".toMediaTypeOrNull()),
                     kelas.toRequestBody("text/plain".toMediaTypeOrNull()),
                     suku.toRequestBody("text/plain".toMediaTypeOrNull()),
                     bitmap.toMultipartBody()
                 )
-                if (result.status == "success") {
-                    retrieveData()
-                } else {
-                    throw Exception(result.message)
-                }
+                retrieveData()
+
             } catch (e: Exception) {
                 Log.d("MainViewModel", "Failure: ${e.message}")
                 errorMessage.value = "Error: ${e.message}"
@@ -63,12 +60,10 @@ class MainViewModel : ViewModel() {
     fun updateData(email: String, mahasiswa: Mahasiswa) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = MahasiswaApi.service.updateMahasiswa(email, mahasiswa.id, mahasiswa)
-                if (result.status == "success") {
-                    retrieveData()
-                } else {
-                    throw Exception(result.message)
-                }
+                MahasiswaApi.service.updateMahasiswa(email, mahasiswa.id, mahasiswa)
+
+                retrieveData()
+
             } catch (e: Exception) {
                 Log.d("MainViewModel", "Failure: ${e.message}")
                 errorMessage.value = "Error: ${e.message}"
@@ -79,11 +74,12 @@ class MainViewModel : ViewModel() {
     fun deleteData(email: String, id: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = MahasiswaApi.service.deleteMahasiswa(email, id)
-                if (result.status == "success") {
+                val response = MahasiswaApi.service.deleteMahasiswa(email, id)
+
+                if (response.isSuccessful) {
                     retrieveData()
                 } else {
-                    throw Exception(result.message)
+                    throw Exception("Gagal menghapus data. Kode: ${response.code()}")
                 }
             } catch (e: Exception) {
                 Log.d("MainViewModel", "Failure: ${e.message}")
@@ -98,7 +94,7 @@ class MainViewModel : ViewModel() {
         val byteArray = stream.toByteArray()
         val requestBody = byteArray.toRequestBody(
             "image/jpeg".toMediaTypeOrNull(), 0, byteArray.size)
-        return MultipartBody.Part.createFormData("foto", "image.jpg", requestBody)
+        return MultipartBody.Part.createFormData("image", "image.jpg", requestBody)
     }
 
     fun clearMessage() { errorMessage.value = null }

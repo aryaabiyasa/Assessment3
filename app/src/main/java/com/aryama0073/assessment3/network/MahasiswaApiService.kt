@@ -17,16 +17,25 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Response
 
 private const val BASE_URL = "https://api-mobpro-v2.kakashispiritnews.my.id/"
 
+private val logging = HttpLoggingInterceptor().apply {
+    level = HttpLoggingInterceptor.Level.BODY
+}
+private val client = OkHttpClient.Builder()
+    .addInterceptor(logging)
+    .build()
 private val moshi = Moshi.Builder()
     .add(KotlinJsonAdapterFactory())
     .build()
-
 private val retrofit = Retrofit.Builder()
     .addConverterFactory(MoshiConverterFactory.create(moshi))
     .baseUrl(BASE_URL)
+    .client(client)
     .build()
 
 interface MahasiswaApiService {
@@ -41,20 +50,20 @@ interface MahasiswaApiService {
         @Part("kelas") kelas: RequestBody,
         @Part("suku") suku: RequestBody,
         @Part image: MultipartBody.Part
-    ): OpStatus
+    ): Mahasiswa
 
     @PUT("mahasiswa/{id}")
     suspend fun updateMahasiswa(
         @Header("Authorization") email: String,
         @Path("id") id: String,
         @Body mahasiswa: Mahasiswa
-    ): OpStatus
+    ): Mahasiswa
 
     @DELETE("mahasiswa/{id}")
     suspend fun deleteMahasiswa(
         @Header("Authorization") email: String,
         @Path("id") id: String
-    ): OpStatus
+    ): Response<Unit>
 }
 
 object MahasiswaApi {
