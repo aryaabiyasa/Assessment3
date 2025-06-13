@@ -1,5 +1,7 @@
 package com.aryama0073.assessment3.ui.screen
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -7,30 +9,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.aryama0073.assessment3.R
-import com.aryama0073.assessment3.model.Mahasiswa
-import com.aryama0073.assessment3.network.MahasiswaApi
 
 @Composable
-fun UbahDialog(
-    mahasiswa: Mahasiswa,
+fun MahasiswaDialog(
+    bitmap: Bitmap?,
     onDismissRequest: () -> Unit,
-    onConfirmation: (Mahasiswa) -> Unit
+    onConfirmation: (String, String, String) -> Unit
 ) {
-    var nama by remember { mutableStateOf(mahasiswa.nama) }
-    var kelas by remember { mutableStateOf(mahasiswa.kelas) }
-    var suku by remember { mutableStateOf(mahasiswa.suku) }
+    var nama by remember { mutableStateOf("") }
+    var kelas by remember { mutableStateOf("") }
+    var suku by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = { onDismissRequest() }) {
         Card(modifier = Modifier.padding(16.dp), shape = RoundedCornerShape(16.dp)) {
@@ -38,16 +33,10 @@ fun UbahDialog(
                 modifier = Modifier.padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(MahasiswaApi.getMahasiswaImageUrl(mahasiswa.imageUrl))
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = stringResource(R.string.gambar, mahasiswa.nama),
-                    contentScale = ContentScale.Crop,
-                    placeholder = painterResource(id = R.drawable.loading_img),
-                    error = painterResource(id = R.drawable.broken_img),
-                    modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(8.dp))
+                Image(
+                    bitmap = bitmap!!.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxWidth().aspectRatio(1f)
                 )
                 OutlinedTextField(
                     value = nama,
@@ -81,14 +70,7 @@ fun UbahDialog(
                         Text(text = stringResource(R.string.batal))
                     }
                     OutlinedButton(
-                        onClick = {
-                            val updatedMahasiswa = mahasiswa.copy(
-                                nama = nama,
-                                kelas = kelas,
-                                suku = suku
-                            )
-                            onConfirmation(updatedMahasiswa)
-                        },
+                        onClick = { onConfirmation(nama, kelas, suku) },
                         enabled = nama.isNotEmpty() && kelas.isNotEmpty() && suku.isNotEmpty(),
                         modifier = Modifier.padding(8.dp)
                     ) {

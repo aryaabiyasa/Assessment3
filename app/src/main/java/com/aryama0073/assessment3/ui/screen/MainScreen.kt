@@ -13,18 +13,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -32,24 +21,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,7 +31,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -76,10 +48,10 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.aryama0073.assessment3.BuildConfig
 import com.aryama0073.assessment3.R
-import com.aryama0073.assessment3.model.Mobil
+import com.aryama0073.assessment3.model.Mahasiswa
 import com.aryama0073.assessment3.model.User
 import com.aryama0073.assessment3.network.ApiStatus
-import com.aryama0073.assessment3.network.MobilApi
+import com.aryama0073.assessment3.network.MahasiswaApi
 import com.aryama0073.assessment3.network.UserDataStore
 import com.aryama0073.assessment3.ui.theme.Assessment3Theme
 import com.canhub.cropper.CropImageContract
@@ -104,25 +76,22 @@ fun MainScreen() {
     val errorMessage by viewModel.errorMessage
 
     var showDialog by remember { mutableStateOf(false) }
-    var showMobilDialog by remember { mutableStateOf(false) }
+    var showMahasiswaDialog by remember { mutableStateOf(false) }
     var showHapusDialog by remember { mutableStateOf(false) }
-    var mobilToDelete by remember { mutableStateOf<Mobil?>(null) }
-
+    var mahasiswaToDelete by remember { mutableStateOf<Mahasiswa?>(null) }
     var showUbahDialog by remember { mutableStateOf(false) }
-    var mobilToUbah by remember { mutableStateOf<Mobil?>(null) }
-
+    var mahasiswaToUbah by remember { mutableStateOf<Mahasiswa?>(null) }
     var bitmap: Bitmap? by remember { mutableStateOf(null) }
+
     val launcher = rememberLauncherForActivityResult(CropImageContract()) {
         bitmap = getCropperImage(context.contentResolver, it)
-        if (bitmap != null) showMobilDialog = true
+        if (bitmap != null) showMahasiswaDialog = true
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(text = stringResource(id = R.string.app_name))
-                },
+                title = { Text(text = stringResource(id = R.string.app_name)) },
                 colors = TopAppBarDefaults.mediumTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.primary
@@ -131,8 +100,7 @@ fun MainScreen() {
                     IconButton(onClick = {
                         if (user.email.isEmpty()) {
                             CoroutineScope(Dispatchers.IO).launch { signIn(context, dataStore) }
-                        }
-                        else {
+                        } else {
                             showDialog = true
                         }
                     }) {
@@ -147,79 +115,65 @@ fun MainScreen() {
         },
         floatingActionButton = {
             FloatingActionButton(onClick = {
-                val options = CropImageContractOptions(
-                    null, CropImageOptions(
-                        imageSourceIncludeGallery = false,
-                        imageSourceIncludeCamera = true,
-                        fixAspectRatio = true
-                    )
-                )
+                val options = CropImageContractOptions(null, CropImageOptions(imageSourceIncludeGallery = true, imageSourceIncludeCamera = true, fixAspectRatio = true))
                 launcher.launch(options)
             }) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(id = R.string.tambah_hewan)
+                    contentDescription = stringResource(id = R.string.tambah_mahasiswa)
                 )
             }
         }
     ) { innerPadding ->
         ScreenContent(
-            viewModel = viewModel,
-            userId = user.email,
             currentUserId = user.email,
-            onDeleteClick = { hewan ->
-                mobilToDelete = hewan
+            viewModel = viewModel,
+            onDeleteClick = { mahasiswa ->
+                mahasiswaToDelete = mahasiswa
                 showHapusDialog = true
             },
-            onEditClick = { mobil ->
-                mobilToUbah = mobil
+            onEditClick = { mahasiswa ->
+                mahasiswaToUbah = mahasiswa
                 showUbahDialog = true
             },
             modifier = Modifier.padding(innerPadding)
         )
 
         if (showDialog) {
-            ProfilDialog(
-                user = user,
-                onDismissRequest = { showDialog = false }) {
+            ProfilDialog(user = user, onDismissRequest = { showDialog = false }) {
                 CoroutineScope(Dispatchers.IO).launch { signOut(context, dataStore) }
                 showDialog = false
             }
         }
 
-        if (showMobilDialog) {
-            MobilDialog(
+        if (showMahasiswaDialog) {
+            MahasiswaDialog(
                 bitmap = bitmap,
-                onDismissRequest = { showMobilDialog = false }) { nama, namaLatin ->
-                viewModel.saveData(user.email, nama, namaLatin, bitmap!!)
-                showMobilDialog = false
+                onDismissRequest = { showMahasiswaDialog = false }
+            ) { nama, kelas, suku ->
+                viewModel.saveData(user.email, nama, kelas, suku, bitmap!!)
+                showMahasiswaDialog = false
             }
         }
 
         if (showHapusDialog) {
             HapusDialog(
-                onDismissRequest = {
-                    showHapusDialog = false
-                    mobilToDelete = null
-                },
+                onDismissRequest = { showHapusDialog = false },
                 onConfirmation = {
-                    mobilToDelete?.let { hewan ->
-                        viewModel.deleteData(user.email, hewan.id)
-                    }
+                    mahasiswaToDelete?.let { viewModel.deleteData(user.email, it.id) }
+                    showHapusDialog = false
                 }
             )
         }
 
-        if (showUbahDialog && mobilToUbah != null) {
+        if (showUbahDialog && mahasiswaToUbah != null) {
             UbahDialog(
-                mobil = mobilToUbah!!,
-                onDismissRequest = { showUbahDialog = false },
-                onConfirmation = { nama, namaLatin ->
-                    // Panggil viewModel tanpa bitmap
-                    viewModel.updateData(user.email, mobilToUbah!!.id, nama, namaLatin)
-                    showUbahDialog = false
-                }
-            )
+                mahasiswa = mahasiswaToUbah!!,
+                onDismissRequest = { showUbahDialog = false }
+            ) { updatedMahasiswa ->
+                viewModel.updateData(user.email, updatedMahasiswa)
+                showUbahDialog = false
+            }
         }
 
         if (errorMessage != null) {
@@ -232,46 +186,40 @@ fun MainScreen() {
 @Composable
 fun ScreenContent(
     viewModel: MainViewModel,
-    userId: String,
     currentUserId: String,
-    onDeleteClick: (Mobil) -> Unit,
-    onEditClick: (Mobil) -> Unit,
+    onDeleteClick: (Mahasiswa) -> Unit,
+    onEditClick: (Mahasiswa) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val data by viewModel.data
     val status by viewModel.status.collectAsState()
 
-    LaunchedEffect(userId) {
-        viewModel.retrieveData(userId)
+    LaunchedEffect(Unit) {
+        viewModel.retrieveData()
     }
 
     when (status) {
         ApiStatus.LOADING -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         }
-
         ApiStatus.SUCCESS -> {
             LazyVerticalGrid(
                 modifier = modifier.fillMaxSize().padding(4.dp),
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(bottom = 80.dp)
             ) {
-                items(data) { mobil ->
+                items(data) { mahasiswa ->
                     ListItem(
-                        mobil = mobil,
-                        onDeleteClick = { onDeleteClick(mobil) },
-                        onEditClick = { onEditClick(mobil) }
+                        mahasiswa = mahasiswa,
+                        isOwner = mahasiswa.emailUploader == currentUserId,
+                        onDeleteClick = { onDeleteClick(mahasiswa) },
+                        onEditClick = { onEditClick(mahasiswa) }
                     )
-                    Log.d("DEBUG_DELETE", "Hewan: ${mobil.nama}, HewanUserId: '${mobil.userId}', CurrentUserId: '$currentUserId', IsOwner: ${mobil.userId == currentUserId && currentUserId.isNotEmpty()}")
                 }
             }
         }
-
         ApiStatus.FAILED -> {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -280,7 +228,7 @@ fun ScreenContent(
             ) {
                 Text(text = stringResource(id = R.string.error))
                 Button(
-                    onClick = { viewModel.retrieveData(userId) },
+                    onClick = { viewModel.retrieveData() },
                     modifier = Modifier.padding(top = 16.dp),
                     contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp)
                 ) {
@@ -293,7 +241,8 @@ fun ScreenContent(
 
 @Composable
 fun ListItem(
-    mobil: Mobil,
+    mahasiswa: Mahasiswa,
+    isOwner: Boolean,
     onDeleteClick: () -> Unit,
     onEditClick: () -> Unit
 ) {
@@ -306,76 +255,62 @@ fun ListItem(
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(MobilApi.getMobilUrl(mobil.imageId))
+                .data(MahasiswaApi.getMahasiswaImageUrl(mahasiswa.imageUrl))
                 .crossfade(true)
                 .build(),
-            contentDescription = stringResource(R.string.gambar, mobil.nama),
+            contentDescription = stringResource(R.string.gambar, mahasiswa.nama),
             contentScale = ContentScale.Crop,
             placeholder = painterResource(id = R.drawable.loading_img),
             error = painterResource(id = R.drawable.broken_img),
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
+            modifier = Modifier.fillMaxWidth().aspectRatio(1f)
         )
-        // HANYA GUNAKAN ROW INI UNTUK SEMUA TOMBOL AKSI
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(8.dp)
-        ) {
-            // Ikon Edit
-            Box(
-                modifier = Modifier
-                    .size(35.dp)
-                    .background(Color.Black.copy(alpha = 0.3f), shape = CircleShape)
-                    .clickable { onEditClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.baseline_edit_24),
-                    contentDescription = "Ubah",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Ikon Hapus
-            Box(
-                modifier = Modifier
-                    .size(35.dp)
-                    .background(Color.Black.copy(alpha = 0.3f), shape = CircleShape)
-                    .clickable { onDeleteClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Hapus",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
+        if (isOwner) {
+            Row(modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp)) {
+                Box(
+                    modifier = Modifier.size(35.dp)
+                        .background(Color.Black.copy(alpha = 0.3f), shape = CircleShape)
+                        .clickable { onEditClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.baseline_edit_24),
+                        contentDescription = "Edit",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier.size(35.dp)
+                        .background(Color.Black.copy(alpha = 0.3f), shape = CircleShape)
+                        .clickable { onDeleteClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.hapus),
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(
-                    MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f)
-                )
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f))
                 .padding(8.dp)
         ) {
             Text(
-                text = mobil.nama,
+                text = mahasiswa.nama,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = mobil.namaLatin,
-                fontStyle = FontStyle.Italic,
+                text = "Kelas: ${mahasiswa.kelas} | Suku: ${mahasiswa.suku}",
                 fontSize = 14.sp,
                 color = Color.White,
                 maxLines = 1,

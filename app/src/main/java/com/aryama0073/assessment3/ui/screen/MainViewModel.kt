@@ -5,9 +5,9 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.aryama0073.assessment3.model.Mobil
+import com.aryama0073.assessment3.model.Mahasiswa
 import com.aryama0073.assessment3.network.ApiStatus
-import com.aryama0073.assessment3.network.MobilApi
+import com.aryama0073.assessment3.network.MahasiswaApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -18,21 +18,18 @@ import java.io.ByteArrayOutputStream
 
 class MainViewModel : ViewModel() {
 
-    var data = mutableStateOf(emptyList<Mobil>())
+    var data = mutableStateOf(emptyList<Mahasiswa>())
         private set
-
     var status = MutableStateFlow(ApiStatus.LOADING)
         private set
-
     var errorMessage = mutableStateOf<String?>(null)
         private set
 
-
-    fun retrieveData(userId: String) {
+    fun retrieveData() {
         viewModelScope.launch(Dispatchers.IO) {
             status.value = ApiStatus.LOADING
             try {
-                data.value = MobilApi.service.getMobil(userId)
+                data.value = MahasiswaApi.service.getMahasiswa()
                 status.value = ApiStatus.SUCCESS
             } catch (e: Exception) {
                 Log.d("MainViewModel", "Failure: ${e.message}")
@@ -41,40 +38,18 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun saveData(userId: String, nama: String, namaLatin: String, bitmap: Bitmap) {
+    fun saveData(email: String, nama: String, kelas: String, suku: String, bitmap: Bitmap) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = MobilApi.service.postMobil(
-                    userId,
-                    nama.toRequestBody("text.plain".toMediaTypeOrNull()),
-                    namaLatin.toRequestBody("text.plain".toMediaTypeOrNull()),
+                val result = MahasiswaApi.service.postMahasiswa(
+                    email = email,
+                    nama.toRequestBody("text/plain".toMediaTypeOrNull()),
+                    kelas.toRequestBody("text/plain".toMediaTypeOrNull()),
+                    suku.toRequestBody("text/plain".toMediaTypeOrNull()),
                     bitmap.toMultipartBody()
                 )
-
-                if (result.status == "success")
-                    retrieveData(userId)
-                else
-                    throw Exception (result.message)
-            } catch (e: Exception) {
-                Log.d("MainViewModel", "Failure: ${e.message}")
-                errorMessage.value = "Error: ${e.message}"
-            }
-        }
-    }
-
-    fun updateData(userId: String, mobilId: String, nama: String, namaLatin: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                // Tidak ada lagi logika untuk gambar, langsung panggil service
-                val result = MobilApi.service.updateMobil(
-                    userId = userId,
-                    mobilId = mobilId,
-                    nama = nama,
-                    namaLatin = namaLatin
-                )
-
                 if (result.status == "success") {
-                    retrieveData(userId)
+                    retrieveData()
                 } else {
                     throw Exception(result.message)
                 }
@@ -85,17 +60,31 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun deleteData(userId: String, hewanId: String) {
+    fun updateData(email: String, mahasiswa: Mahasiswa) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = MobilApi.service.deleteMobil(
-                    userId,
-                    hewanId
-                )
-                if (result.status == "success")
-                    retrieveData(userId)
-                else
+                val result = MahasiswaApi.service.updateMahasiswa(email, mahasiswa.id, mahasiswa)
+                if (result.status == "success") {
+                    retrieveData()
+                } else {
                     throw Exception(result.message)
+                }
+            } catch (e: Exception) {
+                Log.d("MainViewModel", "Failure: ${e.message}")
+                errorMessage.value = "Error: ${e.message}"
+            }
+        }
+    }
+
+    fun deleteData(email: String, id: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = MahasiswaApi.service.deleteMahasiswa(email, id)
+                if (result.status == "success") {
+                    retrieveData()
+                } else {
+                    throw Exception(result.message)
+                }
             } catch (e: Exception) {
                 Log.d("MainViewModel", "Failure: ${e.message}")
                 errorMessage.value = "Error: ${e.message}"
@@ -108,9 +97,8 @@ class MainViewModel : ViewModel() {
         compress(Bitmap.CompressFormat.JPEG, 80, stream)
         val byteArray = stream.toByteArray()
         val requestBody = byteArray.toRequestBody(
-            "image/jpg".toMediaTypeOrNull(), 0, byteArray.size)
-        return MultipartBody.Part.createFormData(
-            "image", "image.jpg", requestBody)
+            "image/jpeg".toMediaTypeOrNull(), 0, byteArray.size)
+        return MultipartBody.Part.createFormData("foto", "image.jpg", requestBody)
     }
 
     fun clearMessage() { errorMessage.value = null }
