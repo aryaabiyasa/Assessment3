@@ -17,11 +17,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -105,6 +108,9 @@ fun MainScreen() {
     var showHapusDialog by remember { mutableStateOf(false) }
     var mobilToDelete by remember { mutableStateOf<Mobil?>(null) }
 
+    var showUbahDialog by remember { mutableStateOf(false) }
+    var mobilToUbah by remember { mutableStateOf<Mobil?>(null) }
+
     var bitmap: Bitmap? by remember { mutableStateOf(null) }
     val launcher = rememberLauncherForActivityResult(CropImageContract()) {
         bitmap = getCropperImage(context.contentResolver, it)
@@ -165,6 +171,10 @@ fun MainScreen() {
                 mobilToDelete = hewan
                 showHapusDialog = true
             },
+            onEditClick = { mobil ->
+                mobilToUbah = mobil
+                showUbahDialog = true
+            },
             modifier = Modifier.padding(innerPadding)
         )
 
@@ -200,6 +210,18 @@ fun MainScreen() {
             )
         }
 
+        if (showUbahDialog && mobilToUbah != null) {
+            UbahDialog(
+                mobil = mobilToUbah!!,
+                onDismissRequest = { showUbahDialog = false },
+                onConfirmation = { nama, namaLatin ->
+                    // Panggil viewModel tanpa bitmap
+                    viewModel.updateData(user.email, mobilToUbah!!.id, nama, namaLatin)
+                    showUbahDialog = false
+                }
+            )
+        }
+
         if (errorMessage != null) {
             Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
             viewModel.clearMessage()
@@ -213,6 +235,7 @@ fun ScreenContent(
     userId: String,
     currentUserId: String,
     onDeleteClick: (Mobil) -> Unit,
+    onEditClick: (Mobil) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val data by viewModel.data
@@ -241,7 +264,8 @@ fun ScreenContent(
                 items(data) { mobil ->
                     ListItem(
                         mobil = mobil,
-                        onDeleteClick = { onDeleteClick(mobil) }
+                        onDeleteClick = { onDeleteClick(mobil) },
+                        onEditClick = { onEditClick(mobil) }
                     )
                     Log.d("DEBUG_DELETE", "Hewan: ${mobil.nama}, HewanUserId: '${mobil.userId}', CurrentUserId: '$currentUserId', IsOwner: ${mobil.userId == currentUserId && currentUserId.isNotEmpty()}")
                 }
@@ -269,8 +293,9 @@ fun ScreenContent(
 
 @Composable
 fun ListItem(
-             mobil: Mobil,
-             onDeleteClick: () -> Unit
+    mobil: Mobil,
+    onDeleteClick: () -> Unit,
+    onEditClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -292,24 +317,45 @@ fun ListItem(
                 .fillMaxWidth()
                 .aspectRatio(1f)
         )
-        Box(
+        // HANYA GUNAKAN ROW INI UNTUK SEMUA TOMBOL AKSI
+        Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(8.dp)
-                .size(35.dp)
-                .background(
-                    Color.Black.copy(alpha = 0.3f),
-                    shape = CircleShape
-                )
-                .clickable { onDeleteClick() },
-            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = "Hapus",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
+            // Ikon Edit
+            Box(
+                modifier = Modifier
+                    .size(35.dp)
+                    .background(Color.Black.copy(alpha = 0.3f), shape = CircleShape)
+                    .clickable { onEditClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.baseline_edit_24),
+                    contentDescription = "Ubah",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Ikon Hapus
+            Box(
+                modifier = Modifier
+                    .size(35.dp)
+                    .background(Color.Black.copy(alpha = 0.3f), shape = CircleShape)
+                    .clickable { onDeleteClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Hapus",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
         Column(
             modifier = Modifier

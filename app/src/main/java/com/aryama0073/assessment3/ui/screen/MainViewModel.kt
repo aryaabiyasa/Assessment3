@@ -62,6 +62,29 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    fun updateData(userId: String, mobilId: String, nama: String, namaLatin: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Tidak ada lagi logika untuk gambar, langsung panggil service
+                val result = MobilApi.service.updateMobil(
+                    userId = userId,
+                    mobilId = mobilId,
+                    nama = nama,
+                    namaLatin = namaLatin
+                )
+
+                if (result.status == "success") {
+                    retrieveData(userId)
+                } else {
+                    throw Exception(result.message)
+                }
+            } catch (e: Exception) {
+                Log.d("MainViewModel", "Failure: ${e.message}")
+                errorMessage.value = "Error: ${e.message}"
+            }
+        }
+    }
+
     fun deleteData(userId: String, hewanId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {

@@ -9,6 +9,8 @@ import okhttp3.RequestBody
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.DELETE
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
@@ -40,6 +42,15 @@ interface MobilApiService {
         @Part("nama") nama: RequestBody,
         @Part("namaLatin") namaLatin: RequestBody,
         @Part image: MultipartBody.Part
+    ): OpStatus
+
+    @FormUrlEncoded
+    @POST("hewan.php")
+    suspend fun updateMobil(
+        @Header("Authorization") userId: String,
+        @Field("id") mobilId: String,
+        @Field("nama") nama: String,
+        @Field("namaLatin") namaLatin: String
     ): OpStatus
 
     @DELETE("hewan.php")
